@@ -15,17 +15,17 @@
 
     <!-- Input fields for road chainage start, end, and width -->
     <label for="chainageStart">Road Chainage Start (m):</label>
-    <input type="number" id="chainageStart" value="0" /><br /><br />
+    <input type="number" id="chainageStart" value="0" min="0" /><br /><br />
 
     <label for="chainageEnd">Road Chainage End (m):</label>
-    <input type="number" id="chainageEnd" value="1000" /><br /><br />
+    <input type="number" id="chainageEnd" value="1000" min="0" /><br /><br />
 
     <label for="roadWidth">Road Width (m):</label>
-    <input type="number" id="roadWidth" value="10" /><br /><br />
+    <input type="number" id="roadWidth" value="10" min="1" /><br /><br />
 
     <!-- Input fields for patch and alternative method -->
     <label for="patchCost">Patch Repair Cost ($/m²):</label>
-    <input type="number" id="patchCost" value="30" /><br /><br />
+    <input type="number" id="patchCost" value="30" min="0" /><br /><br />
 
     <label for="altMethodName">Alternative Method Name (Full Width):</label>
     <input
@@ -35,7 +35,10 @@
     /><br /><br />
 
     <label for="altMethodCost">Alternative Method Cost ($/m²):</label>
-    <input type="number" id="altMethodCost" value="20" /><br /><br />
+    <input type="number" id="altMethodCost" value="20" min="0" /><br /><br />
+
+    <!-- Error message area -->
+    <div id="errorMessage" style="color: red; font-weight: bold"></div>
 
     <button onclick="handleFile()">Process File</button>
 
@@ -49,7 +52,56 @@
     <canvas id="roadCanvas" width="1000" height="300"></canvas>
 
     <script>
+      function validateInputs() {
+        const chainageStart = parseFloat(
+          document.getElementById("chainageStart").value
+        );
+        const chainageEnd = parseFloat(
+          document.getElementById("chainageEnd").value
+        );
+        const roadWidth = parseFloat(
+          document.getElementById("roadWidth").value
+        );
+        const patchCost = parseFloat(
+          document.getElementById("patchCost").value
+        );
+        const altMethodCost = parseFloat(
+          document.getElementById("altMethodCost").value
+        );
+
+        let errorMessage = "";
+
+        // Validate chainage
+        if (chainageStart >= chainageEnd) {
+          errorMessage += "Chainage start must be less than chainage end.\n";
+        }
+
+        // Validate road width
+        if (roadWidth <= 0) {
+          errorMessage += "Road width must be greater than 0.\n";
+        }
+
+        // Validate costs
+        if (patchCost <= 0) {
+          errorMessage += "Patch repair cost must be greater than 0.\n";
+        }
+        if (altMethodCost <= 0) {
+          errorMessage += "Alternative method cost must be greater than 0.\n";
+        }
+
+        if (errorMessage) {
+          document.getElementById("errorMessage").textContent = errorMessage;
+          return false; // Invalid input
+        }
+
+        document.getElementById("errorMessage").textContent = ""; // Clear any existing errors
+        return true; // Valid input
+      }
+
       function handleFile() {
+        if (!validateInputs()) {
+          return; // If inputs are invalid, stop processing
+        }
         // triggered when spreadsheet file is uploaded
 
         const input = document.getElementById("inputFile");
@@ -296,6 +348,25 @@
 
           ctx.fillRect(patchStartPx, patchY, patchLengthPx, patchWidthPx);
         });
+
+        // Add chainage labels along the bottom of the road
+        ctx.fillStyle = "#000000"; // Set the text color to black
+        ctx.font = "12px Arial"; // Set the font size and style
+
+        const numberOfLabels = 10; // Number of chainage labels to display
+        const chainageInterval = road_length / numberOfLabels; // Interval between each chainage label
+
+        for (let i = 0; i <= numberOfLabels; i++) {
+          const chainageValue = (chainageInterval * i).toFixed(0); // Calculate the chainage value
+          const chainageX = roadX + chainageValue * lengthScale; // Scale the x-coordinate of the chainage label
+
+          // Draw the chainage value
+          ctx.fillText(
+            `${chainageValue} m`,
+            chainageX,
+            roadY + roadWidthInPixels / 2 + 20
+          ); // Adjust the y-coordinate below the road
+        }
 
         // Add legend with color boxes
         ctx.fillStyle = "#000000"; // Black text
